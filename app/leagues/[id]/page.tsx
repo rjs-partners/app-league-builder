@@ -88,7 +88,12 @@ export default function LeaguePage() {
           <CardHeader><CardTitle>Fixtures</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {fixtures.map((f) => (
-              <FixtureRow key={f.id} fixture={f} onSubmit={(sets)=>updateResult(f.id, sets)} />
+              <FixtureRow
+                key={f.id}
+                fixture={f}
+                sport={league.sport}
+                onSubmit={(sets) => updateResult(f.id, sets)}
+              />
             ))}
           </CardContent>
         </Card>
@@ -130,52 +135,91 @@ export default function LeaguePage() {
   );
 }
 
-function FixtureRow({ fixture, onSubmit }: {
+function FixtureRow({
+  fixture,
+  sport,
+  onSubmit,
+}: {
   fixture: Fixture;
-  onSubmit: (sets: Array<{a:number; b:number}>) => void;
+  sport: 'Padel' | 'Tennis';
+  onSubmit: (sets: Array<{ a: number; b: number }>) => void;
 }) {
-  const [s1a, setS1a] = useState<number | ''>(''); const [s1b, setS1b] = useState<number | ''>('');
-  const [s2a, setS2a] = useState<number | ''>(''); const [s2b, setS2b] = useState<number | ''>('');
-  const [s3a, setS3a] = useState<number | ''>(''); const [s3b, setS3b] = useState<number | ''>('');
+  const [setCount, setSetCount] = useState<number>(sport === 'Tennis' ? 3 : 3);
+  const [scores, setScores] = useState<Array<{ a: number | ''; b: number | '' }>>(
+    Array.from({ length: 5 }, () => ({ a: '', b: '' }))
+  );
+
+  const updateScore = (idx: number, side: 'a' | 'b', val: string) => {
+    setScores((prev) => {
+      const next = [...prev];
+      next[idx] = {
+        ...next[idx],
+        [side]: val === '' ? '' : Number(val),
+      } as { a: number | ''; b: number | '' };
+      return next;
+    });
+  };
 
   const submit = () => {
-    const sets = [
-      typeof s1a === 'number' && typeof s1b === 'number' ? { a: s1a, b: s1b } : null,
-      typeof s2a === 'number' && typeof s2b === 'number' ? { a: s2a, b: s2b } : null,
-      typeof s3a === 'number' && typeof s3b === 'number' ? { a: s3a, b: s3b } : null,
-    ].filter(Boolean) as Array<{a:number; b:number}>;
+    const sets = scores
+      .slice(0, setCount)
+      .filter((s) => typeof s.a === 'number' && typeof s.b === 'number') as Array<{
+      a: number;
+      b: number;
+    }>;
     if (sets.length === 0) return;
     onSubmit(sets);
-    setS1a(''); setS1b(''); setS2a(''); setS2b(''); setS3a(''); setS3b('');
+    setScores(Array.from({ length: 5 }, () => ({ a: '', b: '' })));
   };
 
   return (
-    <div className="grid gap-2 rounded-xl border p-3 md:grid-cols-12 items-center">
+    <div className="grid items-center gap-2 rounded-xl border p-3 md:grid-cols-12">
       <div className="md:col-span-5">
-        <div className="font-medium">{fixture.teamA} <span className="text-slate-400">vs</span> {fixture.teamB}</div>
-        <div className="text-xs text-slate-500">{fixture.date ? new Date(fixture.date).toLocaleDateString() : 'TBC'} • {fixture.location || 'TBC'}</div>
+      
+        <div className="font-medium">
+          {fixture.teamA} <span className="text-slate-400">vs</span> {fixture.teamB}
+        </div>
+        <div className="text-xs text-slate-500">
+          {fixture.date ? new Date(fixture.date).toLocaleDateString() : 'TBC'} •{' '}
+          {fixture.location || 'TBC'}
+        </div>
       </div>
       <div className="md:col-span-4">
         {fixture.result ? (
           <Badge variant="success" className="rounded-xl">
-            Result: {fixture.result.sets.map(s => `${s.a}-${s.b}`).join(', ')} • {fixture.result.winner === 'A' ? 'Winner: Home' : 'Winner: Away'}
+            Result: {fixture.result.sets.map((s) => `${s.a}-${s.b}`).join(', ')} •{' '}
+            {fixture.result.winner === 'A' ? 'Winner: Home' : 'Winner: Away'}
           </Badge>
         ) : (
           <div className="flex items-center gap-2 text-sm">
-            {([
-              [s1a, setS1a, s1b, setS1b],
-              [s2a, setS2a, s2b, setS2b],
-              [s3a, setS3a, s3b, setS3b],
-            ] as [
-              number | '', React.Dispatch<React.SetStateAction<number | ''>>,
-              number | '', React.Dispatch<React.SetStateAction<number | ''>>
-            ][]).map((row, idx) => (
+            {sport === 'Tennis' && (
+              <select
+                className="rounded-xl border p-1 text-xs"
+                value={setCount}
+                onChange={(e) => setSetCount(Number(e.target.value))}
+              >
+                <option value={1}>1 set</option>
+                <option value={3}>3 sets</option>
+                <option value={5}>5 sets</option>
+              </select>
+            )}
+            {Array.from({ length: setCount }).map((_, idx) => (
               <div key={idx} className="flex items-center gap-1">
-                <Input className="w-12" inputMode="numeric" placeholder="6"
-                  value={row[0]} onChange={(e)=>row[1](e.target.value==='' ? '' : Number(e.target.value))} />
+                <Input
+                  className="w-12"
+                  inputMode="numeric"
+                  placeholder="6"
+                  value={scores[idx].a}
+                  onChange={(e) => updateScore(idx, 'a', e.target.value)}
+                />
                 <span className="text-slate-400">-</span>
-                <Input className="w-12" inputMode="numeric" placeholder="4"
-                  value={row[2]} onChange={(e)=>row[3](e.target.value==='' ? '' : Number(e.target.value))} />
+                <Input
+                  className="w-12"
+                  inputMode="numeric"
+                  placeholder="4"
+                  value={scores[idx].b}
+                  onChange={(e) => updateScore(idx, 'b', e.target.value)}
+                />
               </div>
             ))}
           </div>
@@ -183,7 +227,9 @@ function FixtureRow({ fixture, onSubmit }: {
       </div>
       <div className="md:col-span-3 md:flex md:justify-end">
         {fixture.result ? (
-          <Badge variant="outline" className="rounded-xl">Confirmed</Badge>
+          <Badge variant="outline" className="rounded-xl">
+            Confirmed
+          </Badge>
         ) : (
           <Button onClick={submit}>Submit result</Button>
         )}
