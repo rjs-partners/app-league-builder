@@ -14,12 +14,15 @@ export default function NewLeaguePage() {
   const [end, setEnd] = useState<string>(new Date(Date.now()+28*864e5).toISOString().slice(0,10));
   const [players, setPlayers] = useState<string>('Team A\nTeam B\nTeam C\nTeam D');
 
-  const create = () => {
-    const id = Math.random().toString(36).slice(2,9);
-    const teams = players.split('\n').map(s=>s.trim()).filter(Boolean);
-    const payload = { id, sport, name, location, start, end, teams };
-    // temp persistence so refresh keeps it
-    localStorage.setItem(`league:${id}`, JSON.stringify(payload));
+  const create = async () => {
+    const payload = { name, sport, location, start, end, teams: players.split('\n').map(s=>s.trim()).filter(Boolean) };
+    const res = await fetch('/api/leagues', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) { alert('Failed to create'); return; }
+    const { id } = await res.json();
     window.location.href = `/leagues/${id}`;
   };
 

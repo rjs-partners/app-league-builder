@@ -5,81 +5,60 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { generateRoundRobin } from '@/lib/scheduler';
 import { computeStandings, type Fixture } from '@/lib/standings';
 
-type League = { id:string; sport:'Padel'|'Tennis'; name:string; location?:string; start:string; end:string; teams:string[] };
-
 export default function LeaguePage() {
-  const { id } = useParams<{id: string}>();
-  const [league, setLeague] = useState<League | null>(null);
-  const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const { id } = useParams<{ id: string }>();
+  const [data, setData] = useState<any | null>(null);
 
-  // load league + fixtures from localStorage (created on /leagues/new)
   useEffect(() => {
-    const raw = typeof window !== 'undefined' ? localStorage.getItem(`league:${id}`) : null;
-    if (!raw) return;
-    const lg: League = JSON.parse(raw);
-    setLeague(lg);
-
-    const stored = localStorage.getItem(`league:${id}:fixtures`);
-    if (stored) {
-      setFixtures(JSON.parse(stored));
-    } else {
-      const rr = generateRoundRobin(
-        lg.teams.map((_, i) => `t${i}`),
-        lg.start,
-        1,
-        lg.location
-      ).map((f) => ({
-        ...f,
-        teamA: lg.teams[Number(f.teamA.slice(1))],
-        teamB: lg.teams[Number(f.teamB.slice(1))],
-      })) as Fixture[];
-      setFixtures(rr);
-      localStorage.setItem(`league:${id}:fixtures`, JSON.stringify(rr));
-    }
+    (async () => {
+      const res = await fetch(`/api/leagues/${id}`, { cache: 'no-store' });
+      if (res.ok) setData(await res.json());
+    })();
   }, [id]);
 
-  // persist fixtures on change
-  useEffect(() => {
-    if (!league || fixtures.length === 0) return;
-    localStorage.setItem(`league:${id}:fixtures`, JSON.stringify(fixtures));
-  }, [fixtures, id, league]);
+  const fixtures: Fixture[] = useMemo(() => {
+    if (!data) return [];
+    return data.fixtures.map((f: any) => ({
+      id: f.id,
+      round: f.round,
+      teamA: f.teamA.name,
+      teamB: f.teamB.name,
+      date: f.date || undefined,
+      location: f.location || undefined,
+      result: f.result ? { sets: f.result.sets, winner: f.result.winner } : null,
+    }));
+  }, [data]);
 
   const table = useMemo(() => {
-    if (!league) return [];
-    return computeStandings(league.teams, fixtures);
-  }, [league, fixtures]);
+    if (!data) return [];
+    return computeStandings(data.teams.map((t: any) => t.name), fixtures);
+  }, [data, fixtures]);
 
-  const updateResult = (fixtureId: string, sets: Array<{ a:number; b:number }>) => {
-    setFixtures((prev) =>
-      prev.map((f) =>
-        f.id === fixtureId
-          ? {
-              ...f,
-              result: {
-                sets,
-                winner:
-                  sets.filter((s) => s.a > s.b).length >
-                  sets.filter((s) => s.b > s.a).length
-                    ? 'A'
-                    : 'B',
-              },
-            }
-          : f
-      )
-    );
+  const submitResult = async (fixtureId: string, sets: Array<{ a: number; b: number }>) => {
+    const winner =
+      sets.filter((s) => s.a > s.b).length >
+      sets.filter((s) => s.b > s.a).length
+        ? 'A'
+        : 'B';
+    await fetch('/api/results', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fixtureId, sets, winner }),
+    });
+    const res = await fetch(`/api/leagues/${id}`, { cache: 'no-store' });
+    if (res.ok) setData(await res.json());
   };
 
-  if (!league) return <main className="p-6">Loading…</main>;
+  if (!data) return <main className="p-6">Loading…</main>;
 
   return (
     <main className="max-w-6xl mx-auto p-6 space-y-6">
       <header className="flex items-center gap-3">
-        <h1 className="text-2xl font-semibold">{league.name}</h1>
-        <Badge variant="secondary">{league.sport}</Badge>
-        {league.location && <Badge variant="outline">{league.location}</Badge>}
+        <h1 className="text-2xl font-semibold">{data.name}</h1>
+        <Badge variant="secondary">{data.sport}</Badge>
+        {data.location && <Badge variant="outline">{data.location}</Badge>}
       </header>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -88,7 +67,7 @@ export default function LeaguePage() {
           <CardHeader><CardTitle>Fixtures</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {fixtures.map((f) => (
-              <FixtureRow key={f.id} fixture={f} onSubmit={(sets)=>updateResult(f.id, sets)} />
+              <FixtureRow key={f.id} fixture={f} onSubmit={(sets)=>submitResult(f.id, sets)} />
             ))}
           </CardContent>
         </Card>
