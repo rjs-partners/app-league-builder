@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { generateRoundRobin } from '@/lib/scheduler';
 import { computeStandings, type Fixture } from '@/lib/standings';
 
-type League = { id:string; sport:'Padel'|'Tennis'; name:string; location?:string; start:string; end:string; teams:string[] };
+type League = { id:string; sport:'Padel'|'Tennis'; name:string; location?:string; start:string; end:string; teams:string[]; sets:3|5 };
 
 export default function LeaguePage() {
   const { id } = useParams<{id: string}>();
@@ -19,7 +19,7 @@ export default function LeaguePage() {
   useEffect(() => {
     const raw = typeof window !== 'undefined' ? localStorage.getItem(`league:${id}`) : null;
     if (!raw) return;
-    const lg: League = JSON.parse(raw);
+    const lg: League = { sets:3, ...JSON.parse(raw) };
     setLeague(lg);
 
     const stored = localStorage.getItem(`league:${id}:fixtures`);
@@ -88,7 +88,7 @@ export default function LeaguePage() {
           <CardHeader><CardTitle>Fixtures</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {fixtures.map((f) => (
-              <FixtureRow key={f.id} fixture={f} onSubmit={(sets)=>updateResult(f.id, sets)} />
+              <FixtureRow key={f.id} fixture={f} setCount={league.sets} onSubmit={(sets)=>updateResult(f.id, sets)} />
             ))}
           </CardContent>
         </Card>
@@ -130,23 +130,28 @@ export default function LeaguePage() {
   );
 }
 
-function FixtureRow({ fixture, onSubmit }: {
+function FixtureRow({ fixture, onSubmit, setCount }: {
   fixture: Fixture;
   onSubmit: (sets: Array<{a:number; b:number}>) => void;
+  setCount: number;
 }) {
-  const [s1a, setS1a] = useState<number | ''>(''); const [s1b, setS1b] = useState<number | ''>('');
-  const [s2a, setS2a] = useState<number | ''>(''); const [s2b, setS2b] = useState<number | ''>('');
-  const [s3a, setS3a] = useState<number | ''>(''); const [s3b, setS3b] = useState<number | ''>('');
+  const [scoresA, setScoresA] = useState<(number|'' )[]>(Array(setCount).fill(''));
+  const [scoresB, setScoresB] = useState<(number|'' )[]>(Array(setCount).fill(''));
+
+  useEffect(() => {
+    setScoresA(Array(setCount).fill(''));
+    setScoresB(Array(setCount).fill(''));
+  }, [setCount]);
 
   const submit = () => {
-    const sets = [
-      typeof s1a === 'number' && typeof s1b === 'number' ? { a: s1a, b: s1b } : null,
-      typeof s2a === 'number' && typeof s2b === 'number' ? { a: s2a, b: s2b } : null,
-      typeof s3a === 'number' && typeof s3b === 'number' ? { a: s3a, b: s3b } : null,
-    ].filter(Boolean) as Array<{a:number; b:number}>;
+    const sets = scoresA.map((a, i) => {
+      const b = scoresB[i];
+      return typeof a === 'number' && typeof b === 'number' ? { a, b } : null;
+    }).filter(Boolean) as Array<{a:number; b:number}>;
     if (sets.length === 0) return;
     onSubmit(sets);
-    setS1a(''); setS1b(''); setS2a(''); setS2b(''); setS3a(''); setS3b('');
+    setScoresA(Array(setCount).fill(''));
+    setScoresB(Array(setCount).fill(''));
   };
 
   return (
@@ -162,20 +167,17 @@ function FixtureRow({ fixture, onSubmit }: {
           </Badge>
         ) : (
           <div className="flex items-center gap-2 text-sm">
-            {([
-              [s1a, setS1a, s1b, setS1b],
-              [s2a, setS2a, s2b, setS2b],
-              [s3a, setS3a, s3b, setS3b],
-            ] as [
-              number | '', React.Dispatch<React.SetStateAction<number | ''>>,
-              number | '', React.Dispatch<React.SetStateAction<number | ''>>
-            ][]).map((row, idx) => (
+            {Array.from({length: setCount}).map((_, idx) => (
               <div key={idx} className="flex items-center gap-1">
-                <Input className="w-12" inputMode="numeric" placeholder="6"
-                  value={row[0]} onChange={(e)=>row[1](e.target.value==='' ? '' : Number(e.target.value))} />
+                <Input className="w-12" type="number" inputMode="numeric" placeholder="6"
+                  value={scoresA[idx]}
+                  onChange={(e)=>setScoresA(prev=>{ const next=[...prev]; next[idx]= e.target.value=== '' ? '' : Number(e.target.value); return next; })}
+                />
                 <span className="text-slate-400">-</span>
-                <Input className="w-12" inputMode="numeric" placeholder="4"
-                  value={row[2]} onChange={(e)=>row[3](e.target.value==='' ? '' : Number(e.target.value))} />
+                <Input className="w-12" type="number" inputMode="numeric" placeholder="4"
+                  value={scoresB[idx]}
+                  onChange={(e)=>setScoresB(prev=>{ const next=[...prev]; next[idx]= e.target.value=== '' ? '' : Number(e.target.value); return next; })}
+                />
               </div>
             ))}
           </div>

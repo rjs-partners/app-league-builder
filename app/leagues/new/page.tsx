@@ -13,11 +13,12 @@ export default function NewLeaguePage() {
   const [start, setStart] = useState<string>(new Date().toISOString().slice(0,10));
   const [end, setEnd] = useState<string>(new Date(Date.now()+28*864e5).toISOString().slice(0,10));
   const [players, setPlayers] = useState<string>('Team A\nTeam B\nTeam C\nTeam D');
+  const [sets, setSets] = useState<3 | 5>(3);
 
   const create = () => {
     const id = Math.random().toString(36).slice(2,9);
     const teams = players.split('\n').map(s=>s.trim()).filter(Boolean);
-    const payload = { id, sport, name, location, start, end, teams };
+    const payload = { id, sport, name, location, start, end, teams, sets };
     // temp persistence so refresh keeps it
     localStorage.setItem(`league:${id}`, JSON.stringify(payload));
     window.location.href = `/leagues/${id}`;
@@ -32,10 +33,25 @@ export default function NewLeaguePage() {
             <Label>Sport</Label>
             <div className="mt-2 inline-flex rounded-xl border p-1">
               {(['Padel','Tennis'] as const).map(s=>(
-                <Button key={s} variant={sport===s?'default':'ghost'} onClick={()=>setSport(s)} className="rounded-xl">{s}</Button>
+                <Button
+                  key={s}
+                  variant={sport===s?'default':'ghost'}
+                  onClick={()=>{ setSport(s); if(s==='Padel') setSets(3); }}
+                  className="rounded-xl"
+                >{s}</Button>
               ))}
             </div>
           </div>
+          {sport === 'Tennis' && (
+            <div>
+              <Label>Sets per match</Label>
+              <div className="mt-2 inline-flex rounded-xl border p-1">
+                {[3,5].map(n => (
+                  <Button key={n} variant={sets===n?'default':'ghost'} onClick={()=>setSets(n)} className="rounded-xl">{n}</Button>
+                ))}
+              </div>
+            </div>
+          )}
           <div><Label>Name</Label><Input className="mt-2" value={name} onChange={e=>setName(e.target.value)} /></div>
           <div><Label>Location</Label><Input className="mt-2" value={location} onChange={e=>setLocation(e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-4">
