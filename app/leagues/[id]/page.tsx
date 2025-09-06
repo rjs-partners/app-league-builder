@@ -4,7 +4,6 @@ import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { generateRoundRobin } from '@/lib/scheduler';
 import { computeStandings, type Fixture } from '@/lib/standings';
 
@@ -169,21 +168,24 @@ function FixtureRow({ fixture, setCount, onSubmit }: {
         ) : (
           <div className="flex items-center gap-2 text-sm">
             {scores.map((s, idx) => (
-              <div key={idx} className="flex items-center gap-1">
-                <Input
-                  className="w-12"
+              <div
+                key={idx}
+                className="flex h-10 overflow-hidden rounded-full border border-slate-200"
+              >
+                <input
+                  className="w-10 text-center text-slate-900 focus:outline-none"
                   inputMode="numeric"
-                  placeholder="6"
+                  placeholder="0"
                   value={s.a}
-                  onChange={(e)=>update(idx,'a',e.target.value)}
+                  onChange={(e) => update(idx, 'a', e.target.value)}
                 />
-                <span className="text-slate-400">-</span>
-                <Input
-                  className="w-12"
+                <div className="w-px bg-slate-200" />
+                <input
+                  className="w-10 text-center text-slate-900 focus:outline-none"
                   inputMode="numeric"
-                  placeholder="4"
+                  placeholder="0"
                   value={s.b}
-                  onChange={(e)=>update(idx,'b',e.target.value)}
+                  onChange={(e) => update(idx, 'b', e.target.value)}
                 />
               </div>
             ))}
