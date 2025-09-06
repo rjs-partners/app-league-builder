@@ -1,4 +1,6 @@
-generator client { provider = "prisma-client-js" }
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider  = "postgresql"
@@ -6,9 +8,21 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum Sport { Padel Tennis }
-enum Winner { A B }
-enum ResultStatus { Pending Confirmed Disputed }
+enum Sport {
+  Padel
+  Tennis
+}
+
+enum Winner {
+  A
+  B
+}
+
+enum ResultStatus {
+  Pending
+  Confirmed
+  Disputed
+}
 
 model User {
   id        String   @id @default(cuid())
