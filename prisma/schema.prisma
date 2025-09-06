@@ -1,0 +1,98 @@
+// Prisma schema for league builder
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Sport {
+  Padel
+  Tennis
+}
+
+enum Winner {
+  A
+  B
+}
+
+enum ResultStatus {
+  Pending
+  Confirmed
+  Disputed
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  leagues   League[] @relation("OwnerLeagues")
+  createdAt DateTime @default(now())
+}
+
+model League {
+  id         String    @id @default(cuid())
+  name       String
+  sport      Sport
+  location   String?
+  startDate  DateTime?
+  endDate    DateTime?
+  public     Boolean   @default(true)
+  joinToken  String    @unique
+  ownerId    String?
+  owner      User?     @relation("OwnerLeagues", fields: [ownerId], references: [id])
+
+  teams      Team[]
+  fixtures   Fixture[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([sport])
+  @@index([public])
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  leagueId  String
+  league    League   @relation(fields: [leagueId], references: [id])
+
+  fixturesA Fixture[] @relation("TeamA")
+  fixturesB Fixture[] @relation("TeamB")
+
+  @@index([leagueId])
+}
+
+model Fixture {
+  id        String   @id @default(cuid())
+  leagueId  String
+  league    League   @relation(fields: [leagueId], references: [id])
+
+  round     Int
+  teamAId   String
+  teamA     Team     @relation("TeamA", fields: [teamAId], references: [id])
+  teamBId   String
+  teamB     Team     @relation("TeamB", fields: [teamBId], references: [id])
+
+  date      DateTime?
+  location  String?
+
+  result    Result?
+
+  @@index([leagueId])
+  @@index([teamAId])
+  @@index([teamBId])
+}
+
+model Result {
+  id         String       @id @default(cuid())
+  fixtureId  String       @unique
+  fixture    Fixture      @relation(fields: [fixtureId], references: [id])
+  sets       Json         // [{a:6,b:4},{a:7,b:5}]
+  winner     Winner
+  status     ResultStatus @default(Confirmed)
+  createdAt  DateTime     @default(now())
+}
