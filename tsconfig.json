@@ -14,9 +14,16 @@
     "jsx": "preserve",
     "incremental": true,
     "types": ["node"],
-    "baseUrl": ".",
-    "paths": { "@/*": ["./*"] }
+    "baseUrl": ".",                     // 👈 enables absolute imports
+    "paths": {
+      "@/*": ["./*"]                    // 👈 maps @/ to project root
+    }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"               // 👈 added by Next automatically
+  ],
   "exclude": ["node_modules"]
 }
