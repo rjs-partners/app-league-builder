@@ -1,3 +1,4 @@
+'use client';
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, Check, ChevronRight, ClipboardList, PlayCircle, Plus, Share2, Target, Trophy, Users } from "lucide-react";
