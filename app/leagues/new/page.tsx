@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function NewLeaguePage() {
   const [sport, setSport] = useState<'Padel'|'Tennis'>('Padel');
+  const [sets, setSets] = useState<3|5>(3);
   const [name, setName] = useState('Autumn Box League');
   const [location, setLocation] = useState('Riverside Padel & Tennis');
   const [start, setStart] = useState<string>(new Date().toISOString().slice(0,10));
@@ -17,7 +17,7 @@ export default function NewLeaguePage() {
   const create = () => {
     const id = Math.random().toString(36).slice(2,9);
     const teams = players.split('\n').map(s=>s.trim()).filter(Boolean);
-    const payload = { id, sport, name, location, start, end, teams };
+    const payload = { id, sport, sets: sport === 'Tennis' ? sets : 3, name, location, start, end, teams };
     // temp persistence so refresh keeps it
     localStorage.setItem(`league:${id}`, JSON.stringify(payload));
     window.location.href = `/leagues/${id}`;
@@ -36,6 +36,18 @@ export default function NewLeaguePage() {
               ))}
             </div>
           </div>
+          {sport === 'Tennis' && (
+            <div>
+              <Label>Sets</Label>
+              <div className="mt-2 inline-flex rounded-xl border p-1">
+                {[3,5].map(n => (
+                  <Button key={n} variant={sets===n?'default':'ghost'} onClick={()=>setSets(n as 3|5)} className="rounded-xl">
+                    {n} sets
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
           <div><Label>Name</Label><Input className="mt-2" value={name} onChange={e=>setName(e.target.value)} /></div>
           <div><Label>Location</Label><Input className="mt-2" value={location} onChange={e=>setLocation(e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-4">
